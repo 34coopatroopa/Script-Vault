@@ -1,5 +1,5 @@
-$drive1 = "C:\Program Files\VMware"
-$drive2 = "E:\Program Files\VMware"
+$drive1 = "C:\Program Files\"
+$drive2 = "E:\Program Files\"
 
 # Collect relative file paths
 $files1 = Get-ChildItem -Path $drive1 -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
