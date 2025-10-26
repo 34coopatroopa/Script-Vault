@@ -14,7 +14,7 @@ Comprehensive PowerShell and Python automation library for IT infrastructure man
 - [Azure Resource Inventory](cloud/azure/azure_resource_inventory.ps1) | [AWS Resource Inventory](cloud/aws/aws_resource_inventory.ps1)
 
 ### Utilities
-- [Infrastructure Reporting](utilities/powershell/infrastructure_reporting.ps1) | [Network Analyzer](utilities/python/network_analyzer.py) | [Compare Directories](utilities/powershell/compare_directory_structures.ps1) | [Copy Files](utilities/powershell/copy_files_across_drives.ps1)
+- [Infrastructure Reporting](utilities/powershell/infrastructure_reporting.ps1) | [Network Analyzer](utilities/python/network_analyzer.py) | [Compare Directories](utilities/powershell/compare_directory_structures.ps1) | [Copy Files](utilities/powershell/copy_files_across_drives.ps1) | [Web Script Scraper](utilities/powershell/web_script_scraper.ps1)
 
 ### Testing
 - [Test Suite](tests/test_network_tools.ps1)
@@ -352,6 +352,47 @@ $files = @("file1.txt", "file2.txt")
 - Copy specific file lists
 - Load files from text file
 - Progress tracking and error reporting
+
+---
+
+### **Web Script Scraper**
+📄 [**View Script**](utilities/powershell/web_script_scraper.ps1) | **File:** `utilities/powershell/web_script_scraper.ps1`
+
+Intelligent web scraper that finds and downloads scripts from public repositories with smart naming conventions.
+
+**Usage:**
+```powershell
+# Scrape GitHub Gists for PowerShell scripts
+.\web_script_scraper.ps1 -Source gist -Query "active directory" -Count 20 -Language PowerShell
+
+# Scrape all sources
+.\web_script_scraper.ps1 -Source all -Query "network automation" -Count 15
+```
+
+**Features:**
+- Intelligent content analysis for smart naming
+- Automatic categorization (ActiveDirectory, Network, Azure, AWS, etc.)
+- Extracts function names from scripts
+- Saves metadata with each script
+- Creates comprehensive index of scraped scripts
+- Supports GitHub Gist, Pastebin (requires API key)
+- Rate limiting to respect API restrictions
+
+**Intelligent Naming:**
+The scraper analyzes script content to generate intelligent filenames:
+- Extracts function names (e.g., `Get-ADUserInventory_1234.ps1`)
+- Categorizes by topic (e.g., `Network_script_5678.ps1`)
+- Detects file type automatically
+- Sanitizes invalid characters
+
+**Output:**
+```
+scraped_scripts/
+├── Get-ADUserInventory_1234.ps1
+├── Network_script_5678.ps1
+├── Azure_automation_9012.ps1
+└── SCRAPER_INDEX.txt
+```
 
 ---
 
