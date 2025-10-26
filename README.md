@@ -2,6 +2,25 @@
 
 Comprehensive PowerShell and Python automation library for IT infrastructure management, network administration, cloud operations, and security auditing. Designed for RSM IT Infrastructure Consultants.
 
+## 🚀 Quick Links - All Scripts
+
+### Network Tools
+- [Cisco Configuration Backup](network/cisco/cisco_config_backup.ps1) | [Palo Alto Firewall Audit](network/palo_alto/palo_alto_rule_audit.ps1) | [Meraki Device Inventory](network/meraki/meraki_device_inventory.ps1)
+
+### Server Management
+- [Windows Server Audit](server/windows/windows_server_audit.ps1) | [Linux Server Hardening](server/linux/linux_server_hardening.ps1) | [Get AD Computers](server/windows/get_ad_computers.ps1) | [Copy AD Group Membership](server/windows/copy_ad_group_membership.ps1)
+
+### Cloud Automation
+- [Azure Resource Inventory](cloud/azure/azure_resource_inventory.ps1) | [AWS Resource Inventory](cloud/aws/aws_resource_inventory.ps1)
+
+### Utilities
+- [Infrastructure Reporting](utilities/powershell/infrastructure_reporting.ps1) | [Network Analyzer](utilities/python/network_analyzer.py) | [Compare Directories](utilities/powershell/compare_directory_structures.ps1) | [Copy Files](utilities/powershell/copy_files_across_drives.ps1)
+
+### Testing
+- [Test Suite](tests/test_network_tools.ps1)
+
+---
+
 ## 📁 Directory Structure
 
 ```
@@ -27,7 +46,7 @@ ScriptVault/
 ## 🔧 Network Tools
 
 ### **Cisco Configuration Backup**
-**File:** `network/cisco/cisco_config_backup.ps1`
+📄 [**View Script**](network/cisco/cisco_config_backup.ps1) | **File:** `network/cisco/cisco_config_backup.ps1`
 
 Automated configuration backup for Cisco devices (IOS, IOS-XE, NX-OS, ASA).
 
@@ -56,7 +75,7 @@ Install-Module -Name Posh-SSH
 ---
 
 ### **Palo Alto Firewall Rule Audit**
-**File:** `network/palo_alto/palo_alto_rule_audit.ps1`
+📄 [**View Script**](network/palo_alto/palo_alto_rule_audit.ps1) | **File:** `network/palo_alto/palo_alto_rule_audit.ps1`
 
 Security policy analysis and compliance checking for Palo Alto firewalls.
 
@@ -77,7 +96,7 @@ Generate in: Device > Setup > Management > Generate API Key
 ---
 
 ### **Meraki Device Inventory**
-**File:** `network/meraki/meraki_device_inventory.ps1`
+📄 [**View Script**](network/meraki/meraki_device_inventory.ps1) | **File:** `network/meraki/meraki_device_inventory.ps1`
 
 Automated Meraki network and device discovery.
 
@@ -104,7 +123,7 @@ Generate in: Meraki Dashboard > Organization > Settings > Enable API access
 ## 🖥️ Server Management
 
 ### **Windows Server Security Audit**
-**File:** `server/windows/windows_server_audit.ps1`
+📄 [**View Script**](server/windows/windows_server_audit.ps1) | **File:** `server/windows/windows_server_audit.ps1`
 
 Comprehensive Windows security and compliance auditing.
 
@@ -129,8 +148,52 @@ Comprehensive Windows security and compliance auditing.
 
 ---
 
+### **Get Active Directory Computers**
+📄 [**View Script**](server/windows/get_ad_computers.ps1) | **File:** `server/windows/get_ad_computers.ps1`
+
+Retrieve and export Active Directory computers from specified OUs to CSV.
+
+**Requirements:**
+```powershell
+Install-Module -Name ActiveDirectory
+```
+
+**Usage:**
+```powershell
+.\get_ad_computers.ps1 -SearchBase "OU=Servers,DC=domain,DC=com" -OutputPath C:\Reports
+```
+
+**Features:**
+- Export computer inventory to CSV
+- Include OS version and last logon
+- Customize exported properties
+
+---
+
+### **Copy Active Directory Group Membership**
+📄 [**View Script**](server/windows/copy_ad_group_membership.ps1) | **File:** `server/windows/copy_ad_group_membership.ps1`
+
+Copy all group memberships from one AD user to another.
+
+**Requirements:**
+```powershell
+Install-Module -Name ActiveDirectory
+```
+
+**Usage:**
+```powershell
+.\copy_ad_group_membership.ps1 -SourceUser "jsmith" -DestinationUser "jdoe" -WhatIf
+```
+
+**Features:**
+- Copy all group memberships
+- Preview changes with -WhatIf
+- Error handling and validation
+
+---
+
 ### **Linux Server Security Hardening**
-**File:** `server/linux/linux_server_hardening.ps1`
+📄 [**View Script**](server/linux/linux_server_hardening.ps1) | **File:** `server/linux/linux_server_hardening.ps1`
 
 Automated Linux security audit via SSH.
 
@@ -163,7 +226,7 @@ Install-Module -Name Posh-SSH
 ## ☁️ Cloud Management
 
 ### **Azure Resource Inventory**
-**File:** `cloud/azure/azure_resource_inventory.ps1`
+📄 [**View Script**](cloud/azure/azure_resource_inventory.ps1) | **File:** `cloud/azure/azure_resource_inventory.ps1`
 
 Azure resource discovery and compliance checking.
 
@@ -191,7 +254,7 @@ Connect-AzAccount
 ---
 
 ### **AWS Resource Inventory**
-**File:** `cloud/aws/aws_resource_inventory.ps1`
+📄 [**View Script**](cloud/aws/aws_resource_inventory.ps1) | **File:** `cloud/aws/aws_resource_inventory.ps1`
 
 AWS resource discovery and security auditing.
 
@@ -224,7 +287,7 @@ AWS resource discovery and security auditing.
 ## 🛠️ Utilities
 
 ### **Infrastructure Reporting**
-**File:** `utilities/powershell/infrastructure_reporting.ps1`
+📄 [**View Script**](utilities/powershell/infrastructure_reporting.ps1) | **File:** `utilities/powershell/infrastructure_reporting.ps1`
 
 Unified reporting framework for cross-platform infrastructure.
 
@@ -236,7 +299,7 @@ Unified reporting framework for cross-platform infrastructure.
 ---
 
 ### **Network Analyzer (Python)**
-**File:** `utilities/python/network_analyzer.py`
+📄 [**View Script**](utilities/python/network_analyzer.py) | **File:** `utilities/python/network_analyzer.py`
 
 Network diagnostic and troubleshooting tool.
 
@@ -257,10 +320,45 @@ python network_analyzer.py --dns example.com
 
 ---
 
+### **Compare Directory Structures**
+📄 [**View Script**](utilities/powershell/compare_directory_structures.ps1) | **File:** `utilities/powershell/compare_directory_structures.ps1`
+
+Compare file structures between two directory paths to identify missing files.
+
+**Usage:**
+```powershell
+.\compare_directory_structures.ps1 -Path1 "C:\Program Files" -Path2 "E:\Program Files" -OutputPath C:\Reports
+```
+
+**Features:**
+- Find files unique to each location
+- Generate detailed comparison reports
+- Identify backup gaps
+
+---
+
+### **Copy Files Across Drives**
+📄 [**View Script**](utilities/powershell/copy_files_across_drives.ps1) | **File:** `utilities/powershell/copy_files_across_drives.ps1`
+
+Copy specific files from one location to another across drives.
+
+**Usage:**
+```powershell
+$files = @("file1.txt", "file2.txt")
+.\copy_files_across_drives.ps1 -SourcePath "C:\Source" -DestinationPath "E:\Backup" -FileList $files
+```
+
+**Features:**
+- Copy specific file lists
+- Load files from text file
+- Progress tracking and error reporting
+
+---
+
 ## 🧪 Testing
 
 ### **Test Suite**
-**File:** `tests/test_network_tools.ps1`
+📄 [**View Script**](tests/test_network_tools.ps1) | **File:** `tests/test_network_tools.ps1`
 
 Automated test framework for validating scripts.
 
