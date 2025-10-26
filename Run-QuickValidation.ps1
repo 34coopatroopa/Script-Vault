@@ -41,7 +41,7 @@ foreach ($script in $scripts) {
         $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$errors)
         
         if ($errors) {
-            Write-Host " - ❌ FAILED" -ForegroundColor Red
+            Write-Host " - [X] FAILED" -ForegroundColor Red
             $errorCount++
             $syntaxResults += [PSCustomObject]@{
                 Script = $script.Name
@@ -50,7 +50,7 @@ foreach ($script in $scripts) {
                 Location = $script.DirectoryName.Replace((Get-Location).Path, ".")
             }
         } else {
-            Write-Host " - ✓ OK" -ForegroundColor Green
+            Write-Host " - [OK]" -ForegroundColor Green
             $syntaxResults += [PSCustomObject]@{
                 Script = $script.Name
                 Status = "Passed"
@@ -59,7 +59,7 @@ foreach ($script in $scripts) {
             }
         }
     } catch {
-        Write-Host " - ❌ ERROR: $_" -ForegroundColor Red
+        Write-Host " - [X] ERROR: $_" -ForegroundColor Red
         $errorCount++
     }
 }
@@ -81,14 +81,14 @@ foreach ($module in $modules) {
     $installed = Get-Module -ListAvailable -Name $module.Name -ErrorAction SilentlyContinue
     
     if ($installed) {
-        Write-Host "  ✓ $($module.Name) - Installed (v$($installed.Version.ToString()))" -ForegroundColor Green
+        Write-Host "  [OK] $($module.Name) - Installed (v$($installed.Version.ToString()))" -ForegroundColor Green
         $moduleResults += [PSCustomObject]@{
             Module = $module.Name
             Status = "Installed"
             Version = $installed.Version.ToString()
         }
     } else {
-        Write-Host "  ⚠ $($module.Name) - NOT Installed (Required for: $($module.Required))" -ForegroundColor Yellow
+        Write-Host "  [!] $($module.Name) - NOT Installed (Required for: $($module.Required))" -ForegroundColor Yellow
         $moduleResults += [PSCustomObject]@{
             Module = $module.Name
             Status = "Not Installed"
@@ -106,13 +106,13 @@ foreach ($script in $scripts) {
     $help = Get-Help -Path $script.FullName -ErrorAction SilentlyContinue
     
     if ($help -and $help.Synopsis) {
-        Write-Host "  ✓ $($script.Name) - Has documentation" -ForegroundColor Green
+        Write-Host "  [OK] $($script.Name) - Has documentation" -ForegroundColor Green
         $helpResults += [PSCustomObject]@{
             Script = $script.Name
             HasHelp = $true
         }
     } else {
-        Write-Host "  ⚠ $($script.Name) - Missing help documentation" -ForegroundColor Yellow
+        Write-Host "  [!] $($script.Name) - Missing help documentation" -ForegroundColor Yellow
         $helpResults += [PSCustomObject]@{
             Script = $script.Name
             HasHelp = $false
@@ -154,7 +154,7 @@ if ($errorCount -gt 0) {
 }
 
 if ($errorCount -eq 0) {
-    Write-Host "✅ All scripts passed syntax validation!" -ForegroundColor Green
+    Write-Host "[SUCCESS] All scripts passed syntax validation!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Next Steps:" -ForegroundColor Yellow
     Write-Host "  1. Review TESTING_GUIDE.md for detailed testing instructions" -ForegroundColor White
@@ -162,7 +162,7 @@ if ($errorCount -eq 0) {
     Write-Host "  3. Run script-specific tests with -WhatIf parameter" -ForegroundColor White
     Write-Host ""
 } else {
-    Write-Host "⚠️  Some scripts have syntax errors. Please review and fix." -ForegroundColor Yellow
+    Write-Host "[WARNING] Some scripts have syntax errors. Please review and fix." -ForegroundColor Yellow
     Write-Host ""
 }
 
