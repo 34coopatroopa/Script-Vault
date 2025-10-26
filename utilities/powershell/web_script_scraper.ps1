@@ -23,11 +23,15 @@
 .PARAMETER OutputPath
     Directory to save scraped scripts
     
+.PARAMETER GitHubToken
+    GitHub Personal Access Token (optional, for authenticated API access)
+    Get one at: https://github.com/settings/tokens
+    
 .EXAMPLE
     .\web_script_scraper.ps1 -Source gist -Query "active directory" -Count 20 -Language PowerShell
     
 .EXAMPLE
-    .\web_script_scraper.ps1 -Source pastebin -Query "network" -Count 5
+    .\web_script_scraper.ps1 -GitHubToken "ghp_your_token_here" -Query "powershell automation" -Count 10
 #>
 
 [CmdletBinding()]
@@ -46,7 +50,10 @@ param(
     [string]$Language = "PowerShell",
     
     [Parameter(Mandatory=$false)]
-    [string]$OutputPath = ".\scraped_scripts"
+    [string]$OutputPath = ".\scraped_scripts",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$GitHubToken
 )
 
 $ErrorActionPreference = 'Continue'
@@ -124,7 +131,8 @@ function Get-IntelligentName {
 function Get-GitHubGist {
     param(
         [string]$Query,
-        [int]$Count
+        [int]$Count,
+        [string]$Token
     )
     
     Write-Host "`nScraping GitHub Gist..." -ForegroundColor Cyan
@@ -135,6 +143,15 @@ function Get-GitHubGist {
         $headers = @{
             'Accept' = 'application/vnd.github.v3+json'
             'User-Agent' = 'ScriptVault-Scraper'
+        }
+        
+        # Add authentication if token provided
+        if ($Token) {
+            $headers['Authorization'] = "Bearer $Token"
+            Write-Host "Using authenticated GitHub API access" -ForegroundColor Green
+        } else {
+            Write-Host "Note: Using unauthenticated access (limited results)" -ForegroundColor Yellow
+            Write-Host "For better results, use -GitHubToken parameter" -ForegroundColor Yellow
         }
         
         $response = Invoke-RestMethod -Uri $searchUrl -Headers $headers -TimeoutSec 30
@@ -160,7 +177,20 @@ function Get-GitHubGist {
             }
         }
     } catch {
-        Write-Error "Error accessing GitHub Gist: $_"
+        $errorMessage = $_.Exception.Message
+        if ($errorMessage -like "*authentication*" -or $errorMessage -like "*401*") {
+            Write-Warning "GitHub API requires authentication for Code Search"
+            Write-Host "`nTo fix this, you have two options:" -ForegroundColor Yellow
+            Write-Host "1. Create a GitHub Personal Access Token:" -ForegroundColor Cyan
+            Write-Host "   - Go to: https://github.com/settings/tokens" -ForegroundColor Gray
+            Write-Host "   - Generate a token with 'public_repo' scope" -ForegroundColor Gray
+            Write-Host "   - Run: .\web_script_scraper.ps1 -GitHubToken 'your_token' -Query 'powershell' -Count 10" -ForegroundColor Gray
+            Write-Host "`n2. Manual scraping alternative:" -ForegroundColor Cyan
+            Write-Host "   Search manually at https://gist.github.com/search?q=powershell" -ForegroundColor Gray
+            Write-Host "   Copy script URLs and download individually" -ForegroundColor Gray
+        } else {
+            Write-Error "Error accessing GitHub Gist: $_"
+        }
     }
     
     return $gists
@@ -214,13 +244,13 @@ $allScripts = @()
 # Scrape based on source
 switch ($Source) {
     'gist' {
-        $allScripts += Get-GitHubGist -Query $Query -Count $Count
+        $allScripts += Get-GitHubGist -Query $Query -Count $Count -Token $GitHubToken
     }
     'pastebin' {
         $allScripts += Get-Pastebin -Query $Query -Count $Count
     }
     'all' {
-        $allScripts += Get-GitHubGist -Query $Query -Count $Count
+        $allScripts += Get-GitHubGist -Query $Query -Count $Count -Token $GitHubToken
         $allScripts += Get-Pastebin -Query $Query -Count $Count
     }
 }
