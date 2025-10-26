@@ -1,0 +1,31 @@
+# Credentials and sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+*credentials*.csv
+*secrets*.txt
+
+# Output directories
+output/
+reports/
+audits/
+azure_reports/
+aws_reports/
+*.csv
+*.json
+
+# Log files
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
