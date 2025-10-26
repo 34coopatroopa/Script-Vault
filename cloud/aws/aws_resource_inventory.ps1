@@ -96,7 +96,7 @@ function Get-EC2Instances {
                 SubnetID = $instance.SubnetId
                 SecurityGroups = ($instance.SecurityGroups | ForEach-Object { $_.GroupName }) -join ','
                 KeyName = $instance.KeyName
-                Tags = (($instance.Tags | Where-Object { $_.Key -eq 'Name' }).Value) ?? 'N/A'
+                Tags = if (($instance.Tags | Where-Object { $_.Key -eq 'Name' }).Value) { ($instance.Tags | Where-Object { $_.Key -eq 'Name' }).Value } else { 'N/A' }
             }
         }
     }

@@ -105,10 +105,10 @@ foreach ($file in $filesToCopy) {
     try {
         if (Test-Path $sourceFile) {
             Copy-Item -Path $sourceFile -Destination $destFile -Force -ErrorAction Stop
-            Write-Host "  ✓ Copied: $file" -ForegroundColor Green
+            Write-Host "  [OK] Copied: $file" -ForegroundColor Green
             $copiedCount++
         } else {
-            Write-Host "  ✗ Missing: $file" -ForegroundColor Yellow
+            Write-Host "  [X] Missing: $file" -ForegroundColor Yellow
             $missingCount++
         }
     } catch {

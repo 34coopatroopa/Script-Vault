@@ -138,9 +138,9 @@ Write-Host "`nFound $($servers.Count) servers to audit" -ForegroundColor Green
 
 $results = @()
 
-foreach ($server in $servers) {
+foreach ($server in $servers) { 
     $serverIP = $server.IPAddress
-    $username = $server.Username ?? $Credential.UserName
+    $username = if ($server.Username) { $server.Username } else { $Credential.UserName }
     
     $result = Test-LinuxSecurity -Server $serverIP -Username $username -Password $Credential.Password
     
