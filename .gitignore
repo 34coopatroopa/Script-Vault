@@ -29,3 +29,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Scraped scripts (may contain secrets)
+utilities/powershell/scraped_scripts/

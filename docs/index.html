@@ -1,148 +1,4 @@
-#Requires -Version 5.1
-
-<#
-.SYNOPSIS
-    Generate Searchable Repository Index
-    
-.DESCRIPTION
-    Creates a comprehensive searchable HTML index of all scripts in the ScriptVault
-    with filtering, categorization, and search capabilities
-    
-.PARAMETER OutputPath
-    Output directory for the searchable index
-    
-.EXAMPLE
-    .\generate_searchable_index.ps1 -OutputPath ".\docs"
-#>
-
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory=$false)]
-    [string]$OutputPath = ".\docs"
-)
-
-$ErrorActionPreference = 'Continue'
-
-Write-Host "=== Generating Searchable Repository Index ===" -ForegroundColor Yellow
-
-# Create output directory
-if (-not (Test-Path $OutputPath)) {
-    New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
-}
-
-# Find all scripts
-$scripts = Get-ChildItem -Recurse -Filter "*.ps1" | Where-Object {
-    $_.FullName -notlike "*\Run-QuickValidation.ps1" -and
-    $_.FullName -notlike "*\tests\*" -and
-    $_.FullName -notlike "*\scraped_scripts\*"
-}
-
-$pythonScripts = Get-ChildItem -Recurse -Filter "*.py" | Where-Object {
-    $_.FullName -notlike "*\scraped_scripts\*"
-}
-
-$allScripts = @($scripts) + @($pythonScripts)
-
-Write-Host "Found $($allScripts.Count) scripts to index" -ForegroundColor Green
-
-# Categorize scripts
-$categorizedScripts = @{
-    'Network Tools' = @()
-    'Server Management' = @()
-    'Cloud Automation' = @()
-    'Utilities' = @()
-    'Testing' = @()
-    'Other' = @()
-}
-
-foreach ($script in $allScripts) {
-    $relativePath = $script.FullName.Replace((Get-Location).Path, "").TrimStart('\')
-    
-    # Get help information
-    $help = Get-Help -Path $script.FullName -ErrorAction SilentlyContinue
-    $synopsis = if ($help -and $help.Synopsis) { $help.Synopsis } else { "No description available" }
-    $description = if ($help -and $help.Description) { $help.Description.Text -join ' ' } else { $synopsis }
-    
-    # Categorize
-    $category = "Other"
-    if ($relativePath -like "*\network\*") {
-        $category = "Network Tools"
-    } elseif ($relativePath -like "*\server\*") {
-        $category = "Server Management"
-    } elseif ($relativePath -like "*\cloud\*") {
-        $category = "Cloud Automation"
-    } elseif ($relativePath -like "*\utilities\*") {
-        $category = "Utilities"
-    } elseif ($relativePath -like "*\tests\*") {
-        $category = "Testing"
-    }
-    
-    $scriptData = @{
-        Name = $script.Name
-        Path = $relativePath
-        Category = $category
-        Synopsis = $synopsis
-        Description = $description
-        Lines = (Get-Content $script.FullName).Count
-        Modified = $script.LastWriteTime
-        Extension = $script.Extension
-    }
-    
-    $categorizedScripts[$category] += $scriptData
-}
-
-# Read scraped scripts if they exist
-$scrapedScripts = @()
-if (Test-Path ".\utilities\powershell\scraped_scripts\sorted") {
-    $scrapedFiles = Get-ChildItem -Path ".\utilities\powershell\scraped_scripts\sorted" -Filter "*.ps1" -File | Where-Object { $_.Name -ne "SORTED_INDEX.txt" }
-    foreach ($file in $scrapedFiles) {
-        try {
-            $content = Get-Content $file.FullName -Raw
-            $firstLines = ($content -split "`n")[0..20] -join "`n"
-            
-            $scrapedScripts += @{
-                Name = $file.Name
-                Path = "scraped_scripts/sorted/" + $file.Name
-                Category = "Scraped Scripts"
-                Synopsis = "Scraped from web"
-                Description = $firstLines.Substring(0, [Math]::Min(200, $firstLines.Length))
-                Lines = $content.Split("`n").Count
-                Modified = $file.LastWriteTime
-                Extension = $file.Extension
-            }
-        } catch {}
-    }
-    Write-Host "Found $($scrapedFiles.Count) scraped scripts" -ForegroundColor Green
-}
-
-# Generate JSON index for programmatic access
-$jsonIndex = @{
-    generated = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    totalScripts = $allScripts.Count + $scrapedScripts.Count
-    categories = @{}
-    scripts = @()
-}
-
-# Add all scripts to JSON
-foreach ($category in $categorizedScripts.Keys) {
-    $jsonIndex.categories[$category] = $categorizedScripts[$category].Count
-    foreach ($script in $categorizedScripts[$category]) {
-        $jsonIndex.scripts += $script
-    }
-}
-
-$jsonIndex.categories['Scraped Scripts'] = $scrapedScripts.Count
-foreach ($script in $scrapedScripts) {
-    $jsonIndex.scripts += $script
-}
-
-$jsonPath = Join-Path $OutputPath "index.json"
-$jsonIndex | ConvertTo-Json -Depth 10 | Out-File -FilePath $jsonPath -Encoding UTF8
-Write-Host "JSON index created: $jsonPath" -ForegroundColor Green
-
-# Generate interactive HTML search page
-$htmlContent = @"
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -350,8 +206,8 @@ $htmlContent = @"
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 ScriptVault</h1>
-            <p>Searchable Repository Index | Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p>
+            <h1>ðŸ” ScriptVault</h1>
+            <p>Searchable Repository Index | Generated: 2025-10-27 18:58:26</p>
         </div>
         
         <div class="search-container">
@@ -378,7 +234,7 @@ $htmlContent = @"
     </div>
     
     <script>
-        const data = $($jsonIndex | ConvertTo-Json -Compress);
+        const data = {"categories":{"Utilities":0,"Other":5,"Testing":0,"Cloud Automation":0,"Server Management":0,"Scraped Scripts":0,"Network Tools":0},"generated":"2025-10-27 18:58:26","totalScripts":5,"scripts":[{"Modified":"\/Date(1761518080301)\/","Synopsis":"SHORT DESCRIPTION","Extension":".ps1","Category":"Other","Name":"compare_directory_structures.ps1","Description":"SHORT DESCRIPTION","Lines":127,"Path":"compare_directory_structures.ps1"},{"Modified":"\/Date(1761518918157)\/","Synopsis":"SHORT DESCRIPTION","Extension":".ps1","Category":"Other","Name":"copy_files_across_drives.ps1","Description":"SHORT DESCRIPTION","Lines":126,"Path":"copy_files_across_drives.ps1"},{"Modified":"\/Date(1761609503279)\/","Synopsis":"SHORT DESCRIPTION","Extension":".ps1","Category":"Other","Name":"generate_searchable_index.ps1","Description":"SHORT DESCRIPTION","Lines":526,"Path":"generate_searchable_index.ps1"},{"Modified":"\/Date(1761517993672)\/","Synopsis":"SHORT DESCRIPTION","Extension":".ps1","Category":"Other","Name":"infrastructure_reporting.ps1","Description":"SHORT DESCRIPTION","Lines":80,"Path":"infrastructure_reporting.ps1"},{"Modified":"\/Date(1761609009597)\/","Synopsis":"SHORT DESCRIPTION","Extension":".ps1","Category":"Other","Name":"web_script_scraper.ps1","Description":"SHORT DESCRIPTION","Lines":405,"Path":"web_script_scraper.ps1"}]};
         
         function init() {
             // Display stats
@@ -424,19 +280,19 @@ $htmlContent = @"
                 div.className = 'result-item';
                 div.dataset.category = script.Category;
                 
-                div.innerHTML = \`
+                div.innerHTML = \
                     <div class="result-header">
-                        <span class="result-name">\${escapeHtml(script.Name)}</span>
-                        <span class="result-badge">\${script.Category}</span>
+                        <span class="result-name">\</span>
+                        <span class="result-badge">\</span>
                     </div>
-                    <div class="result-path">📁 \${script.Path}</div>
-                    <div class="result-description">\${escapeHtml(script.Synopsis)}</div>
+                    <div class="result-path">ðŸ“ \</div>
+                    <div class="result-description">\</div>
                     <div class="result-meta">
-                        <span>📊 \${script.Lines} lines</span>
-                        <span>🔧 \${script.Extension}</span>
-                        <span>📅 \${new Date(script.Modified).toLocaleDateString()}</span>
+                        <span>ðŸ“Š \ lines</span>
+                        <span>ðŸ”§ \</span>
+                        <span>ðŸ“… \</span>
                     </div>
-                \`;
+                \;
                 
                 resultsDiv.appendChild(div);
             });
@@ -482,7 +338,7 @@ $htmlContent = @"
             
             const items = document.querySelectorAll('.result-item:not(.hidden)');
             items.forEach(item => {
-                const escapedQuery = query.replace(/[.*+?^`$`{}()|[\]\\]/g, '\\`$`&');
+                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(escapedQuery, 'gi');
                 item.innerHTML = item.innerHTML.replace(
                     regex,
@@ -512,15 +368,3 @@ $htmlContent = @"
     </script>
 </body>
 </html>
-"@
-
-$htmlPath = Join-Path $OutputPath "index.html"
-$htmlContent | Out-File -FilePath $htmlPath -Encoding UTF8
-Write-Host "HTML index created: $htmlPath" -ForegroundColor Green
-
-Write-Host "`n=== Index Generation Complete ===" -ForegroundColor Yellow
-Write-Host "Total scripts indexed: $($allScripts.Count)" -ForegroundColor Cyan
-Write-Host "Scraped scripts indexed: $($scrapedScripts.Count)" -ForegroundColor Cyan
-Write-Host "Categories: $($categorizedScripts.Keys.Count)" -ForegroundColor Cyan
-Write-Host "`nOpen index.html in your browser to search!" -ForegroundColor Green
-
