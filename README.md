@@ -1,6 +1,6 @@
 # ScriptVault - IT Infrastructure Automation Library
 
-Comprehensive PowerShell and Python automation library for IT infrastructure management, network administration, cloud operations, and security auditing. Designed for RSM IT Infrastructure Consultants.
+Comprehensive PowerShell and Python automation library for IT infrastructure management, network administration, cloud operations, and security auditing.
 
 ## 🚀 Quick Links - All Scripts
 
@@ -502,14 +502,13 @@ output/
 
 For issues, questions, or contributions:
 - Open an issue in the repository
-- Contact: RSM IT Infrastructure Team
 - Documentation: See individual script headers
 
 ---
 
 ## 📝 License
 
-Proprietary - RSM Internal Use Only
+MIT License - Personal Project
 
 ---
 
@@ -524,4 +523,4 @@ Proprietary - RSM Internal Use Only
 ---
 
 **Last Updated:** January 2025  
-**Maintainer:** RSM IT Infrastructure Team
+**Maintainer:** Personal Project

@@ -482,8 +482,10 @@ $htmlContent = @"
             
             const items = document.querySelectorAll('.result-item:not(.hidden)');
             items.forEach(item => {
+                const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\`$&');
+                const regex = new RegExp(escapedQuery, 'gi');
                 item.innerHTML = item.innerHTML.replace(
-                    new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\\$&'), 'gi'),
+                    regex,
                     match => '<span class="highlight">' + match + '</span>'
                 );
             });
