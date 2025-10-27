@@ -226,6 +226,52 @@ function Get-GitHubRawContent {
     return $URL
 }
 
+# Function to sort files and commit to Git
+function Update-GitRepository {
+    param(
+        [string]$Path,
+        [string]$CommitMessage
+    )
+    
+    if (-not (Test-Path ".git")) {
+        Write-Host "`nWarning: Not in a Git repository. Skipping Git update." -ForegroundColor Yellow
+        return
+    }
+    
+    Write-Host "`nUpdating Git repository..." -ForegroundColor Cyan
+    
+    try {
+        # Navigate to script root directory
+        $scriptRoot = (Get-Item $PSScriptRoot).Parent.Parent.Parent.FullName
+        Push-Location $scriptRoot
+        
+        # Add all scraped scripts
+        git add $Path
+        
+        # Check if there are changes to commit
+        $status = git status --porcelain $Path
+        if ($status) {
+            git commit -m $CommitMessage
+            Write-Host "  [OK] Committed to Git" -ForegroundColor Green
+            
+            # Try to push (won't fail if no remote or no push access)
+            $pushResult = git push origin main 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  [OK] Pushed to GitHub" -ForegroundColor Green
+            } else {
+                Write-Host "  [INFO] Not pushed (may require manual push)" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  [INFO] No changes to commit" -ForegroundColor Gray
+        }
+        
+        Pop-Location
+    } catch {
+        Write-Warning "Failed to update Git repository: $_"
+        Pop-Location
+    }
+}
+
 # Main execution
 Write-Host "=== Intelligent Web Script Scraper ===" -ForegroundColor Yellow
 Write-Host "Source: $Source" -ForegroundColor Cyan
@@ -312,4 +358,48 @@ foreach ($script in $allScripts) {
 $indexContent | Out-File -FilePath $indexPath -Encoding UTF8
 
 Write-Host "`nIndex created: $indexPath" -ForegroundColor Green
+
+# Sort scraped scripts alphabetically
+Write-Host "`nSorting scraped scripts..." -ForegroundColor Cyan
+try {
+    $scrapedFiles = Get-ChildItem -Path $OutputPath -File | Where-Object { $_.Name -ne "SCRAPER_INDEX.txt" }
+    
+    if ($scrapedFiles.Count -gt 0) {
+        # Create sorted subdirectory structure
+        $sortedPath = Join-Path $OutputPath "sorted"
+        if (-not (Test-Path $sortedPath)) {
+            New-Item -ItemType Directory -Path $sortedPath -Force | Out-Null
+        }
+        
+        # Copy files to sorted directory with organized names
+        foreach ($file in ($scrapedFiles | Sort-Object Name)) {
+            Copy-Item -Path $file.FullName -Destination (Join-Path $sortedPath $file.Name) -Force
+        }
+        
+        # Generate sorted index
+        $sortedIndex = Join-Path $sortedPath "SORTED_INDEX.txt"
+        $sortedList = @"
+Sorted Scripts Index
+Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+Total Files: $($scrapedFiles.Count)
+
+Alphabetically Sorted:
+"@
+        foreach ($file in ($scrapedFiles | Sort-Object Name)) {
+            $sortedList += "`n- $($file.Name)"
+        }
+        $sortedList | Out-File -FilePath $sortedIndex -Encoding UTF8
+        
+        Write-Host "  [OK] Sorted $($scrapedFiles.Count) scripts" -ForegroundColor Green
+    }
+} catch {
+    Write-Warning "Failed to sort scripts: $_"
+}
+
+# Auto-update GitHub repository
+if ($savedCount -gt 0) {
+    $commitMessage = "Add $savedCount scraped scripts - Query: $Query - Source: $Source"
+    Update-GitRepository -Path $OutputPath -CommitMessage $commitMessage
+}
+
 Write-Host "`nScraping complete!" -ForegroundColor Yellow
