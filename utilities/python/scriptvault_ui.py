@@ -19,8 +19,14 @@ class ScriptVaultGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("ScriptVault Navigator")
-        self.root.geometry("1000x700")
+        self.root.geometry("1200x800")
         self.root.configure(bg='#f0f0f0')
+        
+        # Configure window icon (if available)
+        try:
+            self.root.iconbitmap(default='icon.ico')
+        except:
+            pass
         
         # Style configuration
         self.setup_styles()
@@ -28,6 +34,7 @@ class ScriptVaultGUI:
         # Data
         self.scripts = {}
         self.filtered_scripts = {}
+        self.current_category = 'All'
         self.load_scripts()
         
         # UI Components
@@ -56,6 +63,7 @@ class ScriptVaultGUI:
     
     def load_scripts(self):
         """Load all scripts from ScriptVault"""
+        print("Loading scripts...")
         for ext in ['*.ps1', '*.py']:
             for script_path in SCRIPT_VAULT_ROOT.rglob(ext):
                 # Skip scraped scripts and test files
@@ -63,13 +71,47 @@ class ScriptVaultGUI:
                     continue
                 
                 rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
+                
+                # Try to get description from script
+                description = self.get_script_description(script_path)
+                
                 self.scripts[rel_path] = {
                     'name': script_path.name,
                     'full_path': str(script_path),
-                    'category': self.get_category(rel_path)
+                    'category': self.get_category(rel_path),
+                    'description': description,
+                    'lines': self.count_lines(script_path)
                 }
         
         self.filtered_scripts = self.scripts.copy()
+        print(f"Loaded {len(self.scripts)} scripts")
+    
+    def get_script_description(self, script_path):
+        """Extract description from script header"""
+        try:
+            with open(script_path, 'r', encoding='utf-8', errors='ignore') as f:
+                lines = f.readlines()
+                # Look for .SYNOPSIS or description in first 20 lines
+                for i, line in enumerate(lines[:20]):
+                    if '.SYNOPSIS' in line.upper() and i + 1 < len(lines):
+                        desc = lines[i + 1].strip()
+                        if desc and not desc.startswith('.'):
+                            return desc[:60] + '...' if len(desc) > 60 else desc
+                    elif '# Description' in line and i + 1 < len(lines):
+                        desc = lines[i + 1].strip()
+                        if desc and not desc.startswith('#'):
+                            return desc[:60] + '...' if len(desc) > 60 else desc
+        except:
+            pass
+        return "No description available"
+    
+    def count_lines(self, script_path):
+        """Count lines in script"""
+        try:
+            with open(script_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return len(f.readlines())
+        except:
+            return 0
     
     def get_category(self, path):
         """Determine script category"""
@@ -140,32 +182,63 @@ class ScriptVaultGUI:
         right_panel = tk.Frame(main_frame, bg='white')
         right_panel.pack(side='right', fill='both', expand=True)
         
-        # Script list header
-        list_header = tk.Label(right_panel, text="📁 Scripts",
+        # Script list header with count
+        header_frame = tk.Frame(right_panel, bg='white')
+        header_frame.pack(fill='x', padx=20, pady=(20, 10))
+        
+        list_header = tk.Label(header_frame, text="📁 Scripts",
                               font=('Segoe UI', 14, 'bold'),
                               bg='white')
-        list_header.pack(pady=20)
+        list_header.pack(side='left')
         
-        # Listbox with scrollbar
-        list_frame = tk.Frame(right_panel)
-        list_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        self.count_label = tk.Label(header_frame, text="",
+                                    font=('Segoe UI', 10),
+                                    bg='white', fg='#666')
+        self.count_label.pack(side='left', padx=(10, 0))
         
-        scrollbar = ttk.Scrollbar(list_frame)
+        # Treeview for better display
+        tree_frame = tk.Frame(right_panel, bg='white')
+        tree_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        # Create Treeview with columns
+        columns = ('name', 'path', 'lines')
+        self.script_tree = ttk.Treeview(tree_frame, columns=columns, show='tree headings',
+                                        selectmode='browse', height=20)
+        
+        # Configure columns
+        self.script_tree.heading('#0', text='Category')
+        self.script_tree.heading('name', text='Script Name')
+        self.script_tree.heading('path', text='Path')
+        self.script_tree.heading('lines', text='Lines')
+        
+        self.script_tree.column('#0', width=150)
+        self.script_tree.column('name', width=250)
+        self.script_tree.column('path', width=400)
+        self.script_tree.column('lines', width=80)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(tree_frame, orient='vertical', command=self.script_tree.yview)
+        self.script_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.script_tree.pack(side='left', fill='both', expand=True)
         scrollbar.pack(side='right', fill='y')
         
-        self.script_listbox = tk.Listbox(list_frame, 
-                                         font=('Consolas', 10),
-                                         yscrollcommand=scrollbar.set,
-                                         selectmode='browse',
-                                         bg='white',
-                                         relief='flat',
-                                         activestyle='none')
-        self.script_listbox.pack(side='left', fill='both', expand=True)
-        scrollbar.config(command=self.script_listbox.yview)
+        # Bind events
+        self.script_tree.bind('<Double-Button-1>', self.open_script)
+        self.script_tree.bind('<Button-1>', self.on_select)
         
-        # Double-click to open
-        self.script_listbox.bind('<Double-Button-1>', self.open_script)
-        self.script_listbox.bind('<Return>', self.open_script)
+        # Details panel
+        details_frame = tk.Frame(right_panel, bg='#f8f9ff', relief='groove', bd=2)
+        details_frame.pack(fill='x', padx=20, pady=(0, 10))
+        
+        self.details_text = scrolledtext.ScrolledText(details_frame, 
+                                                       height=4,
+                                                       font=('Segoe UI', 9),
+                                                       bg='white',
+                                                       wrap=tk.WORD,
+                                                       relief='flat')
+        self.details_text.pack(fill='both', expand=True, padx=5, pady=5)
+        self.details_text.config(state='disabled')
         
         # Buttons
         button_frame = tk.Frame(right_panel, bg='white')
@@ -187,6 +260,15 @@ class ScriptVaultGUI:
                               cursor='hand2')
         browse_btn.pack(side='left', padx=5)
         
+        refresh_btn = tk.Button(button_frame, text="🔄 Refresh",
+                               font=('Segoe UI', 11),
+                               bg='#28a745',
+                               fg='white',
+                               relief='flat', padx=20, pady=10,
+                               command=self.refresh_scripts,
+                               cursor='hand2')
+        refresh_btn.pack(side='left', padx=5)
+        
         # Populate script list
         self.update_script_list()
         
@@ -207,13 +289,25 @@ class ScriptVaultGUI:
                 categories[cat] = 0
             categories[cat] += 1
         
+        # Create "All" button
+        all_btn = tk.Button(self.categories_frame,
+                           text=f"All Categories\n({len(self.scripts)} scripts)",
+                           font=('Segoe UI', 9, 'bold'),
+                           bg='#667eea' if self.current_category == 'All' else '#f8f9ff',
+                           fg='white' if self.current_category == 'All' else '#667eea',
+                           relief='flat',
+                           padx=10, pady=8,
+                           command=lambda: self.filter_by_category('All'),
+                           cursor='hand2')
+        all_btn.pack(fill='x', pady=(0, 10))
+        
         # Create category buttons
         for cat, count in sorted(categories.items()):
             btn = tk.Button(self.categories_frame,
                           text=f"{cat}\n({count} scripts)",
                           font=('Segoe UI', 9),
-                          bg='#f8f9ff',
-                          fg='#667eea',
+                          bg='#667eea' if self.current_category == cat else '#f8f9ff',
+                          fg='white' if self.current_category == cat else '#667eea',
                           relief='flat',
                           padx=10, pady=8,
                           command=lambda c=cat: self.filter_by_category(c),
@@ -222,56 +316,133 @@ class ScriptVaultGUI:
     
     def filter_by_category(self, category):
         """Filter scripts by category"""
-        self.filtered_scripts = {
-            path: info for path, info in self.scripts.items()
-            if info['category'] == category
-        }
-        self.update_script_list()
-    
-    def on_search(self, *args):
-        """Handle search input"""
-        query = self.search_var.get().lower()
+        self.current_category = category
         
-        if not query:
+        if category == 'All':
             self.filtered_scripts = self.scripts.copy()
         else:
             self.filtered_scripts = {
                 path: info for path, info in self.scripts.items()
+                if info['category'] == category
+            }
+        
+        # Reapply search if there's a query
+        query = self.search_var.get().lower()
+        if query:
+            self.filtered_scripts = {
+                path: info for path, info in self.filtered_scripts.items()
                 if query in path.lower() or query in info['name'].lower()
             }
         
         self.update_script_list()
         self.update_categories()
     
+    def on_search(self, *args):
+        """Handle search input"""
+        query = self.search_var.get().lower()
+        
+        # Apply category filter first
+        if self.current_category == 'All':
+            base_scripts = self.scripts
+        else:
+            base_scripts = {
+                path: info for path, info in self.scripts.items()
+                if info['category'] == self.current_category
+            }
+        
+        # Then apply search filter
+        if not query:
+            self.filtered_scripts = base_scripts
+        else:
+            self.filtered_scripts = {
+                path: info for path, info in base_scripts.items()
+                if query in path.lower() or query in info['name'].lower() or query in info['description'].lower()
+            }
+        
+        self.update_script_list()
+    
     def update_script_list(self):
-        """Update the script listbox"""
-        self.script_listbox.delete(0, tk.END)
+        """Update the script treeview"""
+        # Clear existing items
+        for item in self.script_tree.get_children():
+            self.script_tree.delete(item)
+        
+        # Update count label
+        count = len(self.filtered_scripts)
+        self.count_label.config(text=f"({count} scripts)")
+        
+        if count == 0:
+            self.script_tree.insert('', 'end', values=('No scripts found', '', ''))
+            return
         
         # Sort by path
         sorted_scripts = sorted(self.filtered_scripts.items())
         
+        # Group by category
+        categories = {}
         for path, info in sorted_scripts:
-            self.script_listbox.insert(tk.END, f"{info['category']:20} | {path}")
+            cat = info['category']
+            if cat not in categories:
+                categories[cat] = []
+            categories[cat].append((path, info))
         
-        # Show count
-        if len(sorted_scripts) == 0:
-            self.script_listbox.insert(0, "No scripts found")
+        # Insert into treeview
+        for cat in sorted(categories.keys()):
+            parent = self.script_tree.insert('', 'end', text=cat, values=('', '', f"{len(categories[cat])} scripts"))
+            for path, info in categories[cat]:
+                self.script_tree.insert(parent, 'end', text='',
+                                       values=(info['name'], path, info['lines']))
+    
+    def on_select(self, event):
+        """Handle script selection"""
+        selection = self.script_tree.selection()
+        if not selection:
+            return
+        
+        item = selection[0]
+        values = self.script_tree.item(item, 'values')
+        
+        if not values or not values[0]:
+            return
+        
+        # Find the script info
+        script_name = values[0]
+        for path, info in self.filtered_scripts.items():
+            if info['name'] == script_name:
+                # Update details panel
+                self.details_text.config(state='normal')
+                self.details_text.delete('1.0', tk.END)
+                details = f"📄 {info['name']}\n"
+                details += f"📁 {path}\n"
+                details += f"🔢 {info['lines']} lines\n"
+                details += f"📋 {info['description']}"
+                self.details_text.insert('1.0', details)
+                self.details_text.config(state='disabled')
+                break
     
     def open_script(self, event=None):
         """Open the selected script"""
-        selection = self.script_listbox.curselection()
+        selection = self.script_tree.selection()
         if not selection:
             messagebox.showinfo("No Selection", "Please select a script first")
             return
         
-        idx = selection[0]
-        sorted_scripts = sorted(self.filtered_scripts.items())
+        item = selection[0]
+        values = self.script_tree.item(item, 'values')
         
-        if idx >= len(sorted_scripts):
+        if not values or not values[0]:
             return
         
-        path, info = sorted_scripts[idx]
-        script_path = info['full_path']
+        # Find the script
+        script_name = values[0]
+        script_path = None
+        for path, info in self.filtered_scripts.items():
+            if info['name'] == script_name:
+                script_path = info['full_path']
+                break
+        
+        if not script_path:
+            return
         
         # Open with default application
         try:
@@ -295,6 +466,16 @@ class ScriptVaultGUI:
                 subprocess.run(['xdg-open', SCRIPT_VAULT_ROOT])
         except Exception as e:
             messagebox.showerror("Error", f"Could not open folder:\n{e}")
+    
+    def refresh_scripts(self):
+        """Reload all scripts from disk"""
+        self.scripts.clear()
+        self.current_category = 'All'
+        self.search_var.set('')
+        self.load_scripts()
+        self.update_script_list()
+        self.update_categories()
+        messagebox.showinfo("Refresh Complete", f"Reloaded {len(self.scripts)} scripts")
 
 
 def main():
