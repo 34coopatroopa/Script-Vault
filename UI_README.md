@@ -1,6 +1,6 @@
 # 🎨 ScriptVault UI - Quick Start Guide
 
-A beautiful, lightweight web interface for navigating your ScriptVault!
+A beautiful standalone desktop application for navigating your ScriptVault!
 
 ## 🚀 Quick Start
 
@@ -18,26 +18,25 @@ chmod +x start_ui.sh
 ### Manual:
 ```bash
 cd utilities/python
-pip install flask
 python scriptvault_ui.py
 ```
 
 ## ✨ Features
 
-- 🌐 **Beautiful Web Interface** - Modern, responsive design
+- 🖥️ **Desktop Application** - No web server needed, runs standalone
 - 🔍 **Search** - Real-time search across all scripts
 - 📁 **Categories** - Browse by Network, Server, Cloud, Utilities, etc.
-- 🖱️ **Click to View** - View any script with one click
-- 🎨 **Gradient Background** - Eye-catching UI
-- 📱 **Mobile Friendly** - Works on all devices
+- 🖱️ **Double-Click to Open** - Opens scripts in your default editor
+- 🎨 **Clean Interface** - Modern, easy-to-use GUI
+- 🚀 **Fast Startup** - No dependencies, uses built-in Tkinter
 
 ## 🎯 How to Use
 
-1. **Start the UI** - Run the startup script
-2. **Browser Opens** - Automatically opens at `http://localhost:5000`
-3. **Browse Categories** - Click any category card to view scripts
-4. **Search** - Type in the search box to filter scripts
-5. **View Scripts** - Click any script to open it in a new tab
+1. **Start the App** - Run `start_ui.bat` (Windows)
+2. **Window Opens** - Desktop application window appears
+3. **Browse Categories** - Click any category button on the left
+4. **Search** - Type in the search box to filter scripts instantly
+5. **Open Script** - Double-click a script or select and click "Open Script"
 
 ## 📊 Categories
 
@@ -49,14 +48,14 @@ python scriptvault_ui.py
 
 ## 🔧 Requirements
 
-- Python 3.6+
-- Flask (auto-installed)
+- Python 3.6+ (Tkinter included - no extra packages needed!)
 
 ## 💡 Tips
 
-- **Search Tips**: Search by script name or path
-- **Quick Access**: Bookmarks work - save your favorite scripts
-- **Keyboard**: Use Ctrl+F for browser search if needed
+- **Search Tips**: Search by script name or full path
+- **Quick Open**: Double-click any script to open it immediately
+- **Browse Folder**: Click "Browse Folder" to open ScriptVault in Explorer
+- **Keyboard**: Press Enter on a selected script to open it
 
 Enjoy navigating your ScriptVault! 🎉
 

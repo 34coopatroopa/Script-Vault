@@ -16,13 +16,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Installing Flask if needed...
-pip install flask -q
-
 echo.
-echo Starting ScriptVault UI...
+echo Starting ScriptVault Desktop Application...
 echo.
 python scriptvault_ui.py
 
-pause
+if errorlevel 1 (
+    echo.
+    echo ERROR: Failed to start application
+    pause
+)
 

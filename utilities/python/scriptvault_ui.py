@@ -1,326 +1,314 @@
 #!/usr/bin/env python3
 """
-ScriptVault UI - Simple Web Interface for Navigating Scripts
-Lightweight Flask-based web interface
+ScriptVault UI - Standalone Desktop Application
+Tkinter-based GUI for navigating scripts
 """
 
-from flask import Flask, render_template, jsonify, send_file, request
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox
 import os
-import json
 from pathlib import Path
+import webbrowser
+import subprocess
+import platform
 
-app = Flask(__name__)
-
-# Get the ScriptVault root directory (go up from utilities/python)
+# Get the ScriptVault root directory
 SCRIPT_VAULT_ROOT = Path(__file__).parent.parent.parent
 
-@app.route('/')
-def index():
-    """Main index page"""
-    return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ScriptVault Navigator</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                padding: 20px;
-            }
-            .container {
-                max-width: 1200px;
-                margin: 0 auto;
-            }
-            .header {
-                background: white;
-                padding: 30px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                margin-bottom: 20px;
-                text-align: center;
-            }
-            .header h1 {
-                color: #667eea;
-                font-size: 2.5em;
-                margin-bottom: 10px;
-            }
-            .search-box {
-                width: 100%;
-                padding: 15px;
-                font-size: 16px;
-                border: 2px solid #667eea;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                box-sizing: border-box;
-            }
-            .categories {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 20px;
-                margin-bottom: 20px;
-            }
-            .category-card {
-                background: white;
-                padding: 25px;
-                border-radius: 15px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                cursor: pointer;
-                transition: all 0.3s;
-            }
-            .category-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            }
-            .category-icon {
-                font-size: 3em;
-                margin-bottom: 10px;
-            }
-            .category-title {
-                font-size: 1.5em;
-                color: #667eea;
-                margin-bottom: 10px;
-            }
-            .category-count {
-                color: #666;
-                font-size: 0.9em;
-            }
-            .scripts-panel {
-                background: white;
-                padding: 25px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                display: none;
-            }
-            .scripts-panel.show {
-                display: block;
-            }
-            .script-item {
-                padding: 15px;
-                border: 2px solid #f0f0f0;
-                border-radius: 10px;
-                margin-bottom: 10px;
-                cursor: pointer;
-                transition: all 0.3s;
-            }
-            .script-item:hover {
-                border-color: #667eea;
-                background: #f8f9ff;
-            }
-            .script-name {
-                font-weight: bold;
-                color: #667eea;
-                margin-bottom: 5px;
-            }
-            .script-path {
-                color: #666;
-                font-family: 'Courier New', monospace;
-                font-size: 0.9em;
-            }
-            .back-btn {
-                display: inline-block;
-                padding: 10px 20px;
-                background: #667eea;
-                color: white;
-                text-decoration: none;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                cursor: pointer;
-                border: none;
-            }
-            .back-btn:hover {
-                background: #764ba2;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🔍 ScriptVault Navigator</h1>
-                <p>Browse and navigate your scripts easily</p>
-            </div>
-            
-            <input type="text" class="search-box" id="searchBox" placeholder="Search scripts...">
-            
-            <div class="categories" id="categories"></div>
-            
-            <div class="scripts-panel" id="scriptsPanel">
-                <button class="back-btn" onclick="showCategories()">← Back to Categories</button>
-                <div id="scriptsList"></div>
-            </div>
-        </div>
+class ScriptVaultGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("ScriptVault Navigator")
+        self.root.geometry("1000x700")
+        self.root.configure(bg='#f0f0f0')
         
-        <script>
-            let allScripts = {};
-            let currentCategory = '';
-            
-            // Load script data
-            fetch('/api/scripts')
-                .then(res => res.json())
-                .then(data => {
-                    allScripts = data;
-                    renderCategories();
-                });
-            
-            function renderCategories() {
-                const categoriesDiv = document.getElementById('categories');
-                const categories = {};
+        # Style configuration
+        self.setup_styles()
+        
+        # Data
+        self.scripts = {}
+        self.filtered_scripts = {}
+        self.load_scripts()
+        
+        # UI Components
+        self.create_widgets()
+        
+    def setup_styles(self):
+        """Configure modern styling"""
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Configure colors
+        style.configure('Title.TLabel', 
+                       font=('Segoe UI', 18, 'bold'),
+                       background='#667eea',
+                       foreground='white')
+        
+        style.configure('Category.TLabel',
+                       font=('Segoe UI', 12, 'bold'),
+                       background='#f8f9ff',
+                       foreground='#667eea')
+        
+        style.configure('Count.TLabel',
+                       font=('Segoe UI', 10),
+                       background='#f8f9ff',
+                       foreground='#666')
+    
+    def load_scripts(self):
+        """Load all scripts from ScriptVault"""
+        for ext in ['*.ps1', '*.py']:
+            for script_path in SCRIPT_VAULT_ROOT.rglob(ext):
+                # Skip scraped scripts and test files
+                if 'scraped_scripts' in str(script_path) or 'tests' in str(script_path):
+                    continue
                 
-                // Count scripts by category
-                Object.keys(allScripts).forEach(path => {
-                    const category = getCategory(path);
-                    if (!categories[category]) {
-                        categories[category] = { count: 0, icon: getIcon(category) };
-                    }
-                    categories[category].count++;
-                });
-                
-                // Render category cards
-                Object.keys(categories).sort().forEach(cat => {
-                    const card = document.createElement('div');
-                    card.className = 'category-card';
-                    card.innerHTML = `
-                        <div class="category-icon">${categories[cat].icon}</div>
-                        <div class="category-title">${cat}</div>
-                        <div class="category-count">${categories[cat].count} scripts</div>
-                    `;
-                    card.onclick = () => showScripts(cat);
-                    categoriesDiv.appendChild(card);
-                });
-            }
-            
-            function getCategory(path) {
-                if (path.includes('network/')) return 'Network Tools';
-                if (path.includes('server/')) return 'Server Management';
-                if (path.includes('cloud/')) return 'Cloud Automation';
-                if (path.includes('utilities/')) return 'Utilities';
-                if (path.includes('tests/')) return 'Testing';
-                return 'Other';
-            }
-            
-            function getIcon(category) {
-                const icons = {
-                    'Network Tools': '🌐',
-                    'Server Management': '🖥️',
-                    'Cloud Automation': '☁️',
-                    'Utilities': '🔧',
-                    'Testing': '🧪',
-                    'Other': '📄'
-                };
-                return icons[category] || '📁';
-            }
-            
-            function showScripts(category) {
-                currentCategory = category;
-                document.querySelector('.categories').style.display = 'none';
-                document.getElementById('scriptsPanel').classList.add('show');
-                
-                const filteredScripts = Object.entries(allScripts)
-                    .filter(([path, _]) => getCategory(path) === category);
-                
-                renderScripts(filteredScripts);
-            }
-            
-            function showCategories() {
-                document.querySelector('.categories').style.display = 'grid';
-                document.getElementById('scriptsPanel').classList.remove('show');
-                document.getElementById('searchBox').value = '';
-            }
-            
-            function renderScripts(scripts) {
-                const scriptsList = document.getElementById('scriptsList');
-                scriptsList.innerHTML = '';
-                
-                scripts.sort((a, b) => a[0].localeCompare(b[0]));
-                
-                scripts.forEach(([path, name]) => {
-                    const item = document.createElement('div');
-                    item.className = 'script-item';
-                    item.innerHTML = `
-                        <div class="script-name">${name}</div>
-                        <div class="script-path">📁 ${path}</div>
-                    `;
-                    item.onclick = () => window.open(`/view?path=${encodeURIComponent(path)}`, '_blank');
-                    scriptsList.appendChild(item);
-                });
-            }
-            
-            // Search functionality
-            document.getElementById('searchBox').addEventListener('input', (e) => {
-                const query = e.target.value.toLowerCase();
-                
-                if (!query) {
-                    if (document.getElementById('scriptsPanel').classList.contains('show')) {
-                        showScripts(currentCategory);
-                    }
-                    return;
+                rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
+                self.scripts[rel_path] = {
+                    'name': script_path.name,
+                    'full_path': str(script_path),
+                    'category': self.get_category(rel_path)
                 }
-                
-                const filtered = Object.entries(allScripts)
-                    .filter(([path, name]) => 
-                        name.toLowerCase().includes(query) || path.toLowerCase().includes(query)
-                    );
-                
-                document.querySelector('.categories').style.display = 'none';
-                document.getElementById('scriptsPanel').classList.add('show');
-                renderScripts(filtered);
-            });
-        </script>
-    </body>
-    </html>
-    """
+        
+        self.filtered_scripts = self.scripts.copy()
+    
+    def get_category(self, path):
+        """Determine script category"""
+        if 'network' in path:
+            return '🌐 Network Tools'
+        elif 'server' in path:
+            return '🖥️ Server Management'
+        elif 'cloud' in path:
+            return '☁️ Cloud Automation'
+        elif 'utilities' in path:
+            return '🔧 Utilities'
+        elif 'tests' in path:
+            return '🧪 Testing'
+        else:
+            return '📄 Other'
+    
+    def create_widgets(self):
+        """Create and layout all UI components"""
+        # Header
+        header = tk.Frame(self.root, bg='#667eea', height=80)
+        header.pack(fill='x')
+        
+        title = tk.Label(header, text="🔍 ScriptVault Navigator", 
+                        font=('Segoe UI', 24, 'bold'),
+                        bg='#667eea', fg='white')
+        title.pack(pady=20)
+        
+        # Main container
+        main_frame = tk.Frame(self.root, bg='#f0f0f0')
+        main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # Left panel - Categories and Search
+        left_panel = tk.Frame(main_frame, bg='white', width=300)
+        left_panel.pack(side='left', fill='both', padx=(0, 10))
+        left_panel.pack_propagate(False)
+        
+        # Search box
+        search_label = tk.Label(left_panel, text="Search:", 
+                               font=('Segoe UI', 10, 'bold'),
+                               bg='white')
+        search_label.pack(pady=(20, 5), padx=20, anchor='w')
+        
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', self.on_search)
+        search_entry = ttk.Entry(left_panel, textvariable=self.search_var,
+                                font=('Segoe UI', 11))
+        search_entry.pack(fill='x', padx=20, pady=(0, 20))
+        
+        # Statistics
+        stats_label = tk.Label(left_panel, 
+                              text=f"📊 Total: {len(self.scripts)} scripts",
+                              font=('Segoe UI', 10),
+                              bg='white', fg='#666')
+        stats_label.pack(padx=20, pady=(0, 20))
+        
+        # Categories
+        categories_label = tk.Label(left_panel, text="Categories:",
+                                   font=('Segoe UI', 10, 'bold'),
+                                   bg='white')
+        categories_label.pack(pady=(0, 10), padx=20, anchor='w')
+        
+        self.categories_frame = tk.Frame(left_panel, bg='white')
+        self.categories_frame.pack(fill='both', expand=True, padx=20)
+        
+        self.update_categories()
+        
+        # Right panel - Script list
+        right_panel = tk.Frame(main_frame, bg='white')
+        right_panel.pack(side='right', fill='both', expand=True)
+        
+        # Script list header
+        list_header = tk.Label(right_panel, text="📁 Scripts",
+                              font=('Segoe UI', 14, 'bold'),
+                              bg='white')
+        list_header.pack(pady=20)
+        
+        # Listbox with scrollbar
+        list_frame = tk.Frame(right_panel)
+        list_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        scrollbar = ttk.Scrollbar(list_frame)
+        scrollbar.pack(side='right', fill='y')
+        
+        self.script_listbox = tk.Listbox(list_frame, 
+                                         font=('Consolas', 10),
+                                         yscrollcommand=scrollbar.set,
+                                         selectmode='browse',
+                                         bg='white',
+                                         relief='flat',
+                                         activestyle='none')
+        self.script_listbox.pack(side='left', fill='both', expand=True)
+        scrollbar.config(command=self.script_listbox.yview)
+        
+        # Double-click to open
+        self.script_listbox.bind('<Double-Button-1>', self.open_script)
+        self.script_listbox.bind('<Return>', self.open_script)
+        
+        # Buttons
+        button_frame = tk.Frame(right_panel, bg='white')
+        button_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        open_btn = tk.Button(button_frame, text="📖 Open Script",
+                            font=('Segoe UI', 11, 'bold'),
+                            bg='#667eea', fg='white',
+                            relief='flat', padx=20, pady=10,
+                            command=self.open_script,
+                            cursor='hand2')
+        open_btn.pack(side='left', padx=5)
+        
+        browse_btn = tk.Button(button_frame, text="📂 Browse Folder",
+                              font=('Segoe UI', 11),
+                              bg='#e0e0e0',
+                              relief='flat', padx=20, pady=10,
+                              command=self.browse_folder,
+                              cursor='hand2')
+        browse_btn.pack(side='left', padx=5)
+        
+        # Populate script list
+        self.update_script_list()
+        
+        # Focus on search
+        search_entry.focus()
+    
+    def update_categories(self):
+        """Update category list with counts"""
+        # Clear existing widgets
+        for widget in self.categories_frame.winfo_children():
+            widget.destroy()
+        
+        # Count scripts by category
+        categories = {}
+        for path, info in self.filtered_scripts.items():
+            cat = info['category']
+            if cat not in categories:
+                categories[cat] = 0
+            categories[cat] += 1
+        
+        # Create category buttons
+        for cat, count in sorted(categories.items()):
+            btn = tk.Button(self.categories_frame,
+                          text=f"{cat}\n({count} scripts)",
+                          font=('Segoe UI', 9),
+                          bg='#f8f9ff',
+                          fg='#667eea',
+                          relief='flat',
+                          padx=10, pady=8,
+                          command=lambda c=cat: self.filter_by_category(c),
+                          cursor='hand2')
+            btn.pack(fill='x', pady=5)
+    
+    def filter_by_category(self, category):
+        """Filter scripts by category"""
+        self.filtered_scripts = {
+            path: info for path, info in self.scripts.items()
+            if info['category'] == category
+        }
+        self.update_script_list()
+    
+    def on_search(self, *args):
+        """Handle search input"""
+        query = self.search_var.get().lower()
+        
+        if not query:
+            self.filtered_scripts = self.scripts.copy()
+        else:
+            self.filtered_scripts = {
+                path: info for path, info in self.scripts.items()
+                if query in path.lower() or query in info['name'].lower()
+            }
+        
+        self.update_script_list()
+        self.update_categories()
+    
+    def update_script_list(self):
+        """Update the script listbox"""
+        self.script_listbox.delete(0, tk.END)
+        
+        # Sort by path
+        sorted_scripts = sorted(self.filtered_scripts.items())
+        
+        for path, info in sorted_scripts:
+            self.script_listbox.insert(tk.END, f"{info['category']:20} | {path}")
+        
+        # Show count
+        if len(sorted_scripts) == 0:
+            self.script_listbox.insert(0, "No scripts found")
+    
+    def open_script(self, event=None):
+        """Open the selected script"""
+        selection = self.script_listbox.curselection()
+        if not selection:
+            messagebox.showinfo("No Selection", "Please select a script first")
+            return
+        
+        idx = selection[0]
+        sorted_scripts = sorted(self.filtered_scripts.items())
+        
+        if idx >= len(sorted_scripts):
+            return
+        
+        path, info = sorted_scripts[idx]
+        script_path = info['full_path']
+        
+        # Open with default application
+        try:
+            if platform.system() == 'Windows':
+                os.startfile(script_path)
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.run(['open', script_path])
+            else:  # Linux
+                subprocess.run(['xdg-open', script_path])
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open script:\n{e}")
+    
+    def browse_folder(self):
+        """Open the ScriptVault folder"""
+        try:
+            if platform.system() == 'Windows':
+                os.startfile(SCRIPT_VAULT_ROOT)
+            elif platform.system() == 'Darwin':  # macOS
+                subprocess.run(['open', SCRIPT_VAULT_ROOT])
+            else:  # Linux
+                subprocess.run(['xdg-open', SCRIPT_VAULT_ROOT])
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open folder:\n{e}")
 
-@app.route('/api/scripts')
-def get_scripts():
-    """Get all scripts as JSON"""
-    scripts = {}
-    
-    # Find all .ps1 and .py files
-    for ext in ['*.ps1', '*.py']:
-        for script_path in SCRIPT_VAULT_ROOT.rglob(ext):
-            # Skip scraped scripts and test files
-            if 'scraped_scripts' in str(script_path) or 'tests' in str(script_path):
-                continue
-            
-            rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
-            scripts[rel_path] = script_path.name
-    
-    return jsonify(scripts)
 
-@app.route('/view')
-def view_script():
-    """View a script file"""
-    import urllib.parse
-    path = urllib.parse.unquote(request.args.get('path', ''))
-    script_path = SCRIPT_VAULT_ROOT / path
-    
-    if not script_path.exists():
-        return "Script not found", 404
-    
-    return send_file(script_path)
-
-if __name__ == '__main__':
+def main():
     print("=" * 60)
-    print("🔍 ScriptVault UI - Starting...")
+    print("🔍 ScriptVault Navigator - Starting...")
     print("=" * 60)
     print(f"Root directory: {SCRIPT_VAULT_ROOT}")
-    print("\n🌐 Opening browser at http://localhost:5000")
-    print("Press Ctrl+C to stop")
     print("=" * 60)
+    print()
     
-    import webbrowser
-    import time
-    
-    def open_browser():
-        time.sleep(1)
-        webbrowser.open('http://localhost:5000')
-    
-    import threading
-    threading.Thread(target=open_browser).start()
-    
-    app.run(debug=False, port=5000)
+    root = tk.Tk()
+    app = ScriptVaultGUI(root)
+    root.mainloop()
 
+
+if __name__ == '__main__':
+    main()
