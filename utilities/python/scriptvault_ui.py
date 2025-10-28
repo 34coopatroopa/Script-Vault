@@ -269,6 +269,15 @@ class ScriptVaultGUI:
                                cursor='hand2')
         refresh_btn.pack(side='left', padx=5)
         
+        scraper_btn = tk.Button(button_frame, text="🌐 Web Scraper",
+                               font=('Segoe UI', 11, 'bold'),
+                               bg='#e83e8c',
+                               fg='white',
+                               relief='flat', padx=20, pady=10,
+                               command=self.open_scraper,
+                               cursor='hand2')
+        scraper_btn.pack(side='left', padx=5)
+        
         # Populate script list
         self.update_script_list()
         
@@ -476,6 +485,128 @@ class ScriptVaultGUI:
         self.update_script_list()
         self.update_categories()
         messagebox.showinfo("Refresh Complete", f"Reloaded {len(self.scripts)} scripts")
+    
+    def open_scraper(self):
+        """Open web scraper dialog"""
+        scraper_window = tk.Toplevel(self.root)
+        scraper_window.title("🌐 Web Script Scraper")
+        scraper_window.geometry("600x500")
+        scraper_window.configure(bg='#f0f0f0')
+        
+        # Info frame
+        info_frame = tk.Frame(scraper_window, bg='#e83e8c', height=80)
+        info_frame.pack(fill='x')
+        
+        title = tk.Label(info_frame, text="🌐 Web Script Scraper",
+                        font=('Segoe UI', 16, 'bold'),
+                        bg='#e83e8c', fg='white')
+        title.pack(pady=20)
+        
+        # Main container
+        main_frame = tk.Frame(scraper_window, bg='white', relief='groove', bd=2)
+        main_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # GitHub Token
+        tk.Label(main_frame, text="GitHub Token (optional):",
+                font=('Segoe UI', 10, 'bold'),
+                bg='white').pack(pady=(20, 5), anchor='w', padx=20)
+        token_var = tk.StringVar()
+        token_entry = tk.Entry(main_frame, textvariable=token_var, font=('Segoe UI', 10), width=50)
+        token_entry.pack(fill='x', padx=20)
+        
+        tk.Label(main_frame, text="Get token: https://github.com/settings/tokens",
+                font=('Segoe UI', 8),
+                bg='white', fg='#666').pack(anchor='w', padx=20, pady=5)
+        
+        # Query
+        tk.Label(main_frame, text="Search Query:",
+                font=('Segoe UI', 10, 'bold'),
+                bg='white').pack(pady=(20, 5), anchor='w', padx=20)
+        query_var = tk.StringVar(value="powershell")
+        query_entry = tk.Entry(main_frame, textvariable=query_var, font=('Segoe UI', 10))
+        query_entry.pack(fill='x', padx=20)
+        
+        # Count
+        tk.Label(main_frame, text="Number of scripts:",
+                font=('Segoe UI', 10, 'bold'),
+                bg='white').pack(pady=(20, 5), anchor='w', padx=20)
+        count_var = tk.IntVar(value=10)
+        count_entry = tk.Entry(main_frame, textvariable=count_var, font=('Segoe UI', 10))
+        count_entry.pack(fill='x', padx=20)
+        
+        # Status
+        status_text = scrolledtext.ScrolledText(main_frame, height=8, font=('Consolas', 9))
+        status_text.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        def run_scraper():
+            """Run the scraper"""
+            token = token_var.get().strip()
+            query = query_var.get().strip()
+            count = count_var.get()
+            
+            if not query:
+                messagebox.showwarning("Input Required", "Please enter a search query")
+                return
+            
+            status_text.config(state='normal')
+            status_text.delete('1.0', tk.END)
+            status_text.insert('1.0', "🔄 Starting scraper...\n")
+            scraper_window.update()
+            
+            try:
+                # Run the PowerShell scraper
+                import subprocess
+                ps_script = SCRIPT_VAULT_ROOT / "utilities" / "powershell" / "web_script_scraper.ps1"
+                
+                cmd = ['powershell', '-ExecutionPolicy', 'Bypass', '-File', str(ps_script)]
+                
+                if token:
+                    cmd.extend(['-GitHubToken', token])
+                
+                cmd.extend(['-Query', query, '-Count', str(count)])
+                
+                status_text.insert('end', f"📡 Query: {query}\n")
+                status_text.insert('end', f"📊 Count: {count}\n")
+                status_text.insert('end', "⏳ Running scraper...\n")
+                scraper_window.update()
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                
+                status_text.insert('end', "\n✅ Scraper completed!\n")
+                status_text.insert('end', "\nOutput:\n")
+                status_text.insert('end', result.stdout)
+                
+                if result.returncode == 0:
+                    messagebox.showinfo("Success", "Scraping completed! Use Refresh to see new scripts.")
+                    scraper_window.after(2000, lambda: (scraper_window.destroy(), self.refresh_scripts()))
+                else:
+                    messagebox.showerror("Error", f"Scraper failed:\n{result.stderr}")
+                    
+            except Exception as e:
+                status_text.insert('end', f"\n❌ Error: {str(e)}\n")
+                messagebox.showerror("Error", f"Failed to run scraper:\n{e}")
+            
+            status_text.config(state='disabled')
+        
+        # Buttons
+        btn_frame = tk.Frame(scraper_window, bg='#f0f0f0')
+        btn_frame.pack(fill='x', padx=20, pady=20)
+        
+        run_btn = tk.Button(btn_frame, text="🚀 Start Scraping",
+                           font=('Segoe UI', 11, 'bold'),
+                           bg='#28a745', fg='white',
+                           relief='flat', padx=30, pady=10,
+                           command=run_scraper,
+                           cursor='hand2')
+        run_btn.pack(side='left')
+        
+        cancel_btn = tk.Button(btn_frame, text="Cancel",
+                              font=('Segoe UI', 11),
+                              bg='#e0e0e0',
+                              relief='flat', padx=30, pady=10,
+                              command=scraper_window.destroy,
+                              cursor='hand2')
+        cancel_btn.pack(side='left', padx=10)
 
 
 def main():
