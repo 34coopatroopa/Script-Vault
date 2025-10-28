@@ -14,7 +14,7 @@ Comprehensive PowerShell and Python automation library for IT infrastructure man
 - [Azure Resource Inventory](cloud/azure/azure_resource_inventory.ps1) | [AWS Resource Inventory](cloud/aws/aws_resource_inventory.ps1)
 
 ### Utilities
-- [Infrastructure Reporting](utilities/powershell/infrastructure_reporting.ps1) | [Network Analyzer](utilities/python/network_analyzer.py) | [Compare Directories](utilities/powershell/compare_directory_structures.ps1) | [Copy Files](utilities/powershell/copy_files_across_drives.ps1) | [Web Script Scraper](utilities/powershell/web_script_scraper.ps1)
+- [Infrastructure Reporting](utilities/powershell/infrastructure_reporting.ps1) | [Network Analyzer](utilities/python/network_analyzer.py) | [Compare Directories](utilities/powershell/compare_directory_structures.ps1) | [Copy Files](utilities/powershell/copy_files_across_drives.ps1) | [Web Script Scraper](utilities/powershell/web_script_scraper.ps1) | [🎨 Web UI](utilities/python/scriptvault_ui.py)
 
 ### Testing
 - [Test Suite](tests/test_network_tools.ps1)
