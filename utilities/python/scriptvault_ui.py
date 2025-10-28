@@ -66,11 +66,14 @@ class ScriptVaultGUI:
         print("Loading scripts...")
         for ext in ['*.ps1', '*.py']:
             for script_path in SCRIPT_VAULT_ROOT.rglob(ext):
-                # Skip scraped scripts and test files
-                if 'scraped_scripts' in str(script_path) or 'tests' in str(script_path):
+                # Skip test files only (include scraped scripts now)
+                if 'tests' in str(script_path):
                     continue
                 
                 rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
+                
+                # Mark scraped scripts
+                is_scraped = 'scraped_scripts' in str(script_path)
                 
                 # Try to get description from script
                 description = self.get_script_description(script_path)
@@ -78,9 +81,10 @@ class ScriptVaultGUI:
                 self.scripts[rel_path] = {
                     'name': script_path.name,
                     'full_path': str(script_path),
-                    'category': self.get_category(rel_path),
+                    'category': self.get_category(rel_path, is_scraped),
                     'description': description,
-                    'lines': self.count_lines(script_path)
+                    'lines': self.count_lines(script_path),
+                    'scraped': is_scraped
                 }
         
         self.filtered_scripts = self.scripts.copy()
@@ -113,9 +117,21 @@ class ScriptVaultGUI:
         except:
             return 0
     
-    def get_category(self, path):
+    def get_category(self, path, is_scraped=False):
         """Determine script category"""
-        if 'network' in path:
+        if is_scraped:
+            # Determine category from scraped script name/content
+            if any(word in path.lower() for word in ['azure', 'aws', 'cloud']):
+                return '☁️ Scraped - Cloud'
+            elif any(word in path.lower() for word in ['network', 'cisco', 'meraki']):
+                return '🌐 Scraped - Network'
+            elif any(word in path.lower() for word in ['security', 'admin', 'permission']):
+                return '🔒 Scraped - Security'
+            elif any(word in path.lower() for word in ['database', 'sql', 'mysql']):
+                return '💾 Scraped - Database'
+            else:
+                return '📥 Scraped Scripts'
+        elif 'network' in path:
             return '🌐 Network Tools'
         elif 'server' in path:
             return '🖥️ Server Management'
@@ -399,8 +415,13 @@ class ScriptVaultGUI:
         for cat in sorted(categories.keys()):
             parent = self.script_tree.insert('', 'end', text=cat, values=('', '', f"{len(categories[cat])} scripts"))
             for path, info in categories[cat]:
+                # Add scraped indicator
+                name = info['name']
+                if info.get('scraped', False):
+                    name = f"📥 {name}"
+                
                 self.script_tree.insert(parent, 'end', text='',
-                                       values=(info['name'], path, info['lines']))
+                                       values=(name, path, info['lines']))
     
     def on_select(self, event):
         """Handle script selection"""
