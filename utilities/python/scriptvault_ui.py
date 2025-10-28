@@ -64,16 +64,19 @@ class ScriptVaultGUI:
     def load_scripts(self):
         """Load all scripts from ScriptVault"""
         print("Loading scripts...")
+        
+        # First load regular scripts
         for ext in ['*.ps1', '*.py']:
             for script_path in SCRIPT_VAULT_ROOT.rglob(ext):
-                # Skip test files only (include scraped scripts now)
+                # Skip test files
                 if 'tests' in str(script_path):
                     continue
                 
-                rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
+                # Skip scraped scripts for now (will load separately)
+                if 'scraped_scripts' in str(script_path):
+                    continue
                 
-                # Mark scraped scripts
-                is_scraped = 'scraped_scripts' in str(script_path)
+                rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
                 
                 # Try to get description from script
                 description = self.get_script_description(script_path)
@@ -81,14 +84,37 @@ class ScriptVaultGUI:
                 self.scripts[rel_path] = {
                     'name': script_path.name,
                     'full_path': str(script_path),
-                    'category': self.get_category(rel_path, is_scraped),
+                    'category': self.get_category(rel_path, False),
                     'description': description,
                     'lines': self.count_lines(script_path),
-                    'scraped': is_scraped
+                    'scraped': False
                 }
         
+        # Then load scraped scripts from sorted folder
+        scraped_dir = SCRIPT_VAULT_ROOT / "utilities" / "powershell" / "scraped_scripts" / "sorted"
+        if scraped_dir.exists():
+            print(f"Loading scraped scripts from: {scraped_dir}")
+            for ext in ['*.ps1', '*.py', '*.txt', '*.html']:
+                for script_path in scraped_dir.rglob(ext):
+                    if script_path.name in ['SCRAPER_INDEX.txt', 'SORTED_INDEX.txt']:
+                        continue
+                    
+                    rel_path = str(script_path.relative_to(SCRIPT_VAULT_ROOT))
+                    
+                    # Try to get description from script
+                    description = self.get_script_description(script_path)
+                    
+                    self.scripts[rel_path] = {
+                        'name': script_path.name,
+                        'full_path': str(script_path),
+                        'category': self.get_category(str(script_path), True),
+                        'description': description,
+                        'lines': self.count_lines(script_path),
+                        'scraped': True
+                    }
+        
         self.filtered_scripts = self.scripts.copy()
-        print(f"Loaded {len(self.scripts)} scripts")
+        print(f"Loaded {len(self.scripts)} scripts ({sum(1 for s in self.scripts.values() if s['scraped'])} scraped)")
     
     def get_script_description(self, script_path):
         """Extract description from script header"""
